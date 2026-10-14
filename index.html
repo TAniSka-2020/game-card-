@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids Card Matching Game</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body {
+            margin: 0; padding: 15px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff; text-align: center; min-height: 100vh;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        h1 { margin: 5px 0; font-size: 24px; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+        .score-board {
+            display: flex; justify-content: space-around; align-items: center;
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 15px; margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .player-score { font-size: 20px; font-weight: bold; padding: 8px 15px; border-radius: 10px; }
+        .active-turn { background: #ff9800; color: #000; box-shadow: 0 0 15px #ff9800; transform: scale(1.05); transition: 0.3s; }
+        
+        .player-zone {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px; border-radius: 15px; margin: 5px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .zone-title { font-size: 16px; margin-bottom: 8px; font-weight: bold; color: #ffd54f; }
+        .card-container {
+            display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; min-height: 85px;
+        }
+        .card {
+            width: 55px; height: 80px; border-radius: 10px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 26px; font-weight: bold; color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 3px solid #fff;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .card span { font-size: 11px; text-transform: uppercase; margin-top: 2px; }
+        .card:hover { transform: translateY(-5px); }
+        .highlight-match {
+            animation: pulse 1s infinite;
+            border-color: #00e676; box-shadow: 0 0 15px #00e676;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Card Colors */
+        .Red { background: linear-gradient(135deg, #ff5252, #d32f2f); }
+        .Blue { background: linear-gradient(135deg, #448aff, #1976d2); }
+        .Green { background: linear-gradient(135deg, #69f0ae, #388e3c); color: #003300; }
+        .Yellow { background: linear-gradient(135deg, #ffd740, #fbc02d); color: #332900; }
+
+        /* Center Area */
+        .center-area {
+            display: flex; justify-content: center; align-items: center; gap: 30px;
+            margin: 15px 0; padding: 15px;
+        }
+        .deck-box {
+            width: 90px; height: 125px; border-radius: 12px;
+            background: repeating-linear-gradient(45deg, #ff6f00, #ff6f00 10px, #ffa000 10px, #ffa000 20px);
+            border: 4px solid #fff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5); font-weight: bold; color: #000;
+        }
+        .deck-box:active { transform: scale(0.95); }
+        .drawn-card-slot {
+            width: 90px; height: 125px; border-radius: 12px;
+            border: 3px dashed rgba(255,255,255,0.5);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .drawn-card-slot .card { width: 85px; height: 120px; font-size: 38px; cursor: default; }
+
+        .status-msg {
+            font-size: 18px; font-weight: bold; color: #fff;
+            background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px;
+            margin: 5px auto; width: 90%; max-width: 600px;
+        }
+        .btn {
+            background: #00e676; color: #000; border: none; padding: 10px 20px;
+            font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer;
+            margin-top: 5px; display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎴 কালার ও নাম্বার ম্যাচিং গেম 🎴</h1>
+
+    <div class="score-board">
+        <div id="p1-board" class="player-score active-turn">প্লেয়ার ১: <span id="p1-score">0</span></div>
+        <div>বাকি কার্ড: <span id="deck-count">20</span></div>
+        <div id="p2-board" class="player-score">প্লেয়ার ২: <span id="p2-score">0</span></div>
+    </div>
+
+    <!-- Player 1 Zone -->
+    <div class="player-zone">
+        <div class="zone-title">প্লেয়ার ১-এর কার্ড (Player 1)</div>
+        <div id="p1-cards" class="card-container"></div>
+    </div>
+
+    <!-- Center Table -->
+    <div class="center-area">
+        <div id="draw-deck" class="deck-box" onclick="drawCard()">
+            <span style="background:#fff; padding:4px 8px; border-radius:5px;">কার্ড তুলুন</span>
+        </div>
+        <div id="drawn-slot" class="drawn-card-slot">
+            <span style="font-size:12px; opacity:0.7;">তোলা কার্ড</span>
+        </div>
+    </div>
+
+    <div id="status" class="status-msg">প্লেয়ার ১: মাঝখানের ডেক থেকে একটি কার্ড তুলুন!</div>
+    <center><button id="pass-btn" class="btn" onclick="nextTurn()">পরের প্লেয়ারের দান ➡️</button></center>
+    <center><button id="restart-btn" class="btn" onclick="initGame()">নতুন করে খেলুন 🔄</button></center>
+
+    <!-- Player 2 Zone -->
+    <div class="player-zone">
+        <div class="zone-title">প্লেয়ার ২-এর কার্ড (Player 2)</div>
+        <div id="p2-cards" class="card-container"></div>
+    </div>
+
+    <script>
+        const colors = ['Red', 'Blue', 'Green', 'Yellow'];
+        let deck = [], p1Hand = [], p2Hand = [];
+        let p1Score = 0, p2Score = 0;
+        let currentPlayer = 1;
+        let currentDrawnCard = null;
+        let canDraw = true;
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 0.9;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        function initGame() {
+            deck = [];
+            colors.forEach(color => {
+                for (let num = 1; num <= 10; num++) {
+                    deck.push({ color, num });
+                }
+            });
+            // Shuffle Deck
+            deck.sort(() => Math.random() - 0.5);
+
+            p1Hand = deck.slice(0, 10);
+            p2Hand = deck.slice(10, 20);
+            deck = deck.slice(20, 40);
+
+            p1Score = 0; p2Score = 0;
+            currentPlayer = 1;
+            currentDrawnCard = null;
+            canDraw = true;
+
+            document.getElementById('restart-btn').style.display = 'none';
+            document.getElementById('pass-btn').style.display = 'none';
+            document.getElementById('drawn-slot').innerHTML = '<span style="font-size:12px; opacity:0.7;">তোলা কার্ড</span>';
+            updateUI();
+            setStatus("প্লেয়ার ১: মাঝখানের ডেক থেকে একটি কার্ড তুলুন!");
+        }
+
+        function updateUI() {
+            document.getElementById('p1-score').innerText = p1Score;
+            document.getElementById('p2-score').innerText = p2Score;
+            document.getElementById('deck-count').innerText = deck.length;
+
+            document.getElementById('p1-board').className = 'player-score ' + (currentPlayer === 1 ? 'active-turn' : '');
+            document.getElementById('p2-board').className = 'player-score ' + (currentPlayer === 2 ? 'active-turn' : '');
+
+            renderHand('p1-cards', p1Hand, 1);
+            renderHand('p2-cards', p2Hand, 2);
+        }
+
+        function renderHand(elementId, hand, playerNum) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            hand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                let isMatch = false;
+                if (currentDrawnCard && currentPlayer === playerNum) {
+                    if (card.color === currentDrawnCard.color || card.num === currentDrawnCard.num) {
+                        isMatch = true;
+                    }
+                }
+                cardDiv.className = `card ${card.color} ${isMatch ? 'highlight-match' : ''}`;
+                cardDiv.innerHTML = `${card.num}<span>${card.color}</span>`;
+                cardDiv.onclick = () => matchCard(playerNum, index);
+                container.appendChild(cardDiv);
+            });
+        }
+
+        function drawCard() {
+            if (!canDraw || deck.length === 0) return;
+            canDraw = false;
+            currentDrawnCard = deck.pop();
+
+            const slot = document.getElementById('drawn-slot');
+            slot.innerHTML = `<div class="card ${currentDrawnCard.color}">${currentDrawnCard.num}<span>${currentDrawnCard.color}</span></div>`;
+
+            speak(`${currentDrawnCard.color} ${currentDrawnCard.num}`);
+            updateUI();
+
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+            const hasMatch = activeHand.some(c => c.color === currentDrawnCard.color || c.num === currentDrawnCard.num);
+
+            if (hasMatch) {
+                setStatus(`প্লেয়ার ${currentPlayer}: দারুণ! আপনার হাতের হাইলাইট করা যেকোনো একটি মিলে যাওয়া কার্ডে ক্লিক করুন!`);
+            } else {
+                setStatus(`প্লেয়ার ${currentPlayer}: ইস! কোনো কার্ড মেলেনি (০ পয়েন্ট)।`);
+                speak("No match! Zero point.");
+                document.getElementById('pass-btn').style.display = 'inline-block';
+            }
+        }
+
+        function matchCard(playerNum, cardIndex) {
+            if (canDraw || playerNum !== currentPlayer || !currentDrawnCard) return;
+
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+            const selectedCard = activeHand[cardIndex];
+
+            if (selectedCard.color === currentDrawnCard.color || selectedCard.num === currentDrawnCard.num) {
+                // Remove matched card from hand
+                activeHand.splice(cardIndex, 1);
+                if (currentPlayer === 1) p1Score++; else p2Score++;
+
+                speak("One Point!");
+                setStatus(`প্লেয়ার ${currentPlayer} এক পয়েন্ট পেয়েছেন! 🎉`);
+                currentDrawnCard = null;
+                updateUI();
+
+                setTimeout(() => {
+                    nextTurn();
+                }, 1200);
+            } else {
+                speak("Try again!");
+                setStatus("এই কার্ডটি মেলেনি! একই রঙ অথবা একই নাম্বারের কার্ডে ক্লিক করুন।");
+            }
+        }
+
+        function nextTurn() {
+            document.getElementById('pass-btn').style.display = 'none';
+            currentDrawnCard = null;
+            document.getElementById('drawn-slot').innerHTML = '<span style="font-size:12px; opacity:0.7;">তোলা কার্ড</span>';
+
+            if (deck.length === 0) {
+                endGame();
+                return;
+            }
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            canDraw = true;
+            updateUI();
+            setStatus(`প্লেয়ার ${currentPlayer}: মাঝখানের ডেক থেকে একটি কার্ড তুলুন!`);
+        }
+
+        function endGame() {
+            let winnerMsg = "";
+            if (p1Score > p2Score) winnerMsg = "🏆 প্লেয়ার ১ জিতেছে! অভিনন্দন! 🎉";
+            else if (p2Score > p1Score) winnerMsg = "🏆 প্লেয়ার ২ জিতেছে! অভিনন্দন! 🎉";
+            else winnerMsg = "🤝 খেলা ড্র হয়েছে! দুজনেই সমান পয়েন্ট পেয়েছে!";
+
+            setStatus(`খেলা শেষ! ${winnerMsg}`);
+            speak(winnerMsg);
+            document.getElementById('restart-btn').style.display = 'inline-block';
+        }
+
+        function setStatus(msg) {
+            document.getElementById('status').innerText = msg;
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
